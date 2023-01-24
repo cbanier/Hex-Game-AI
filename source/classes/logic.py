@@ -6,7 +6,6 @@ import random as rd
 from classes.strategy import STRAT
 
 
-
 class Logic:
     def __init__(self, ui):
         self.ui = ui
@@ -73,7 +72,7 @@ class Logic:
                 visited[node] = 1
 
                 if self.is_border(node, player):
-                        self.GAME_OVER = True
+                    self.GAME_OVER = True
 
                 for neighbour in neighbours:
                     self.traverse(neighbour, player, board, visited)

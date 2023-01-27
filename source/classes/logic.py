@@ -30,7 +30,7 @@ class Logic:
         elif player is self.ui.BLACK_PLAYER:  self.ui.color[node] = self.ui.black
         else:                                 self.ui.color[node] = self.ui.white
 
-    def is_game_over(self, player: int, board: np.ndarray) -> Optional[int]:
+    def is_game_over(self, player: int, board: np.ndarray) -> Optional[dict]:
         """
         @return   The winning player:  1 or 2 (or None if the game is over by lack of playable position!)
 
@@ -45,9 +45,9 @@ class Logic:
             if player is self.ui.WHITE_PLAYER:
                 border = (0, _)
 
-            path = self.traverse(border, player, board, {})
+            path = self.traverse(border, player, board, {"player" : player , "nodes": {}})
             if path:
-                return player
+                return path
 
     def is_border(self, node: tuple, player: int) -> bool:
         """
@@ -65,11 +65,11 @@ class Logic:
         neighbours = self.get_neighbours(node)
 
         try:
-            if visited[node]:
+            if visited["nodes"][node]:
                 pass
         except KeyError:
             if board[x][y] == player:
-                visited[node] = 1
+                visited["nodes"][node] = 1
 
                 if self.is_border(node, player):
                     self.GAME_OVER = True
@@ -133,4 +133,5 @@ class Logic:
         self.make_move((x, y), player)
         self.logger[x][y] = player
 
-        return self.is_game_over(player, self.logger)
+        is_game_over = self.is_game_over(player, self.logger)
+        return None if is_game_over is None else is_game_over["player"]

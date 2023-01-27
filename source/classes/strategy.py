@@ -58,7 +58,8 @@ class STRAT:
         elif self.starting_player is self.ui.WHITE_PLAYER:
             # implement here White player strategy
             #x, y = self.minimax_strategy(root_node)
-            x, y = self.minimax_alpha_beta_strategy(root_node)
+            #x, y = self.minimax_alpha_beta_strategy(root_node)
+            x, y = self.pimp_my_minimax(root_node)
 
         return (x, y)
 
@@ -84,21 +85,18 @@ class STRAT:
     #                   HEURISTICS                   #
     ##################################################
     
-    def explore_board_horizontally(self):
+    """
+    Objectives : Reduce the tree search to only neighbours of neighbours.
+    """
+    
+    # return an interval for x and y
+    def board_exploration_limits(self):
+        # first : determine the biggest area
+        # ==> get the limits
         pass
 
-
-    def naive_heuristic(self, board: np.ndarray) -> int:
-        if self.is_winning_path(self.starting_player, board) is self.starting_player:
-            return 1 if self.starting_player is self.ui.BLACK_PLAYER else -1
-        
-        # we have to explore the grid, in order to understand which player is more able to win the game
-        else:
-            for i in range(self.ui.board_size):
-                for j in range(self.ui.board_size):
-                    pass
-            print(board)
-            return 1
+    def heuristic(self, board: np.ndarray) -> int:
+        pass
 
     ##################################################
     #                    MINIMAX                     #
@@ -149,14 +147,23 @@ class STRAT:
     ##################################################
 
     def minimax_alpha_beta_aux(self, current_node: Node, player: int, alpha: int, beta: int, depth: int) -> int:
-        if self.logic.is_game_over(self.ui.WHITE_PLAYER, current_node.state) is self.ui.WHITE_PLAYER:
+        path = self.logic.is_game_over(player, current_node.state)
+        if path is not None:
             self.logic.GAME_OVER = False
-            return -1
-        elif self.logic.is_game_over(self.ui.BLACK_PLAYER, current_node.state) is self.ui.BLACK_PLAYER:
+            if path["player"] is player:
+                return 1 if player is self.ui.BLACK_PLAYER else -1
+        
+        other_player = self.ui.BLACK_PLAYER if player is self.ui.WHITE_PLAYER else self.ui.WHITE_PLAYER
+        path = self.logic.is_game_over(other_player, current_node.state)
+        if path is not None:
             self.logic.GAME_OVER = False
-            return 1
-        elif depth == 0:
-            return 0
+            if path["player"] is other_player:
+                return -1 if player is self.ui.BLACK_PLAYER else 1
+
+        if depth == 0:
+            if player is self.starting_player:
+                return 1 if player is self.ui.BLACK_PLAYER else -1
+            return -1 if player is self.ui.BLACK_PLAYER else 1
         
         self.create_children(current_node, player)
 
@@ -180,8 +187,6 @@ class STRAT:
 
     def minimax_alpha_beta_strategy(self, root: Node, alpha: int = -2, beta: int = 2) -> tuple:
         self.create_children(root, self.starting_player)
-        
-        #mean_turn = 3 * floor(self.ui.board_size / 2)
 
         values = []
         for child in root.children:
@@ -195,6 +200,105 @@ class STRAT:
         else:
             best_value = max(values) if self.starting_player is self.ui.BLACK_PLAYER else min(values)
             best_move = root.children[choice(index_finder(values, best_value))].move
+
+        print(best_move)
+        return best_move
+
+    ##################################################
+    #           PIMP MY MINIMAX ALPHA BETA           #
+    ##################################################
+
+    def pimp_my_minimax_aux(self, current_node: Node, player: int, alpha: int, beta: int, depth: int) -> tuple:
+        path = self.logic.is_game_over(player, current_node.state)
+        if path is not None:
+            self.logic.GAME_OVER = False
+            if path["player"] is player:
+                #print(path)
+                return (1, len(path["nodes"])) if player is self.ui.BLACK_PLAYER else (-1, len(path["nodes"]))
+            else:
+                # HEURITIC
+                pass
+        
+        other_player = self.ui.BLACK_PLAYER if player is self.ui.WHITE_PLAYER else self.ui.WHITE_PLAYER
+        path = self.logic.is_game_over(other_player, current_node.state)
+        if path is not None:
+            self.logic.GAME_OVER = False
+            if path["player"] is other_player:
+                #print(path)
+                return (-1, len(path["nodes"])) if player is self.ui.BLACK_PLAYER else (1, len(path["nodes"]))
+            else:
+                # HEURITIC
+                pass
+
+        ### CALL THE HEURITIC ALSO HERE
+        # we need to reduce the current_node.untried_move list
+        if depth == 0:
+            if player is self.starting_player:
+                return (1, inf) if player is self.ui.BLACK_PLAYER else (-1, inf)
+            return (-1, inf) if player is self.ui.BLACK_PLAYER else (1, inf)
+
+        self.create_children(current_node, player)
+
+        if player is self.ui.BLACK_PLAYER:
+            best_value_minimax, best_path_length = -inf, inf
+            for child in current_node.children:
+                value_minimax, path_length = self.pimp_my_minimax_aux(child, self.ui.WHITE_PLAYER, alpha, beta, depth - 1)
+                best_value_minimax = max(value_minimax, best_value_minimax)
+                alpha = max(alpha, best_value_minimax)
+                if beta <= alpha:
+                    break
+
+                if path_length > 0:
+                    best_path_length = min(path_length, best_path_length)
+        else:
+            best_value_minimax, best_path_length = inf, inf
+            for child in current_node.children:
+                value_minimax, path_length = self.pimp_my_minimax_aux(child, self.ui.BLACK_PLAYER, alpha, beta, depth - 1)
+                best_value_minimax = min(value_minimax, best_value_minimax)
+                beta = min(beta, best_value_minimax)
+                if beta <= alpha:
+                    break
+
+                if path_length > 0:
+                    best_path_length = min(path_length, best_path_length)
+
+        return (best_value_minimax, best_path_length)
+
+
+    def pimp_my_minimax(self, root: Node, alpha: int = -2, beta: int = 2) -> tuple:
+        self.create_children(root, self.starting_player)
+
+        values = []
+        path_lengths = []
+        for child in root.children:
+            value, path_length = self.pimp_my_minimax_aux(child, self.other_player, alpha, beta, depth=6)
+            print(f"val : {value} ; move : {child.move} ; path_length : {path_length}")
+            values.append(value)
+            path_lengths.append(path_length)
+
+        #print(values)
+        print(path_lengths)
+        best_path_length = min(path_lengths)
+
+        # if all values of minimax are equals we pick the move that minimize the path length
+        if all_equal(values):
+            best_move = root.children[choice(index_finder(path_lengths, best_path_length))].move
+
+        # we have to minimize / maximize the strat THEN minimize the path length
+        else:
+            best_value = max(values) if self.starting_player is self.ui.BLACK_PLAYER else min(values)
+
+            # get indexes which correspond to the minimax result
+            minimax_indexes = np.array(index_finder(values, best_value))
+
+            path_indexes = np.array(index_finder(path_lengths, best_path_length))
+
+            inter = np.intersect1d(minimax_indexes, path_indexes)
+            if len(inter) > 0:
+                best_move = root.children[choice(inter)].move
+
+            else:
+                best_move = root.children[choice(minimax_indexes)].move
 
         print(best_move)
         return best_move

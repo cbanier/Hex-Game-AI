@@ -58,7 +58,7 @@ class STRAT:
         elif self.starting_player is self.ui.WHITE_PLAYER:
             # implement here White player strategy
             #x, y = self.minimax_strategy(root_node)
-            #x, y = self.minimax_alpha_beta_strategy(root_node)
+            # x, y = self.minimax_alpha_beta_strategy(root_node)
             x, y = self.pimp_my_minimax(root_node)
 
         return (x, y)
@@ -248,7 +248,7 @@ class STRAT:
                 if beta <= alpha:
                     break
 
-                if path_length > 0:
+                if path_length > 1:
                     best_path_length = min(path_length, best_path_length)
         else:
             best_value_minimax, best_path_length = inf, inf
@@ -259,7 +259,7 @@ class STRAT:
                 if beta <= alpha:
                     break
 
-                if path_length > 0:
+                if path_length > 1:
                     best_path_length = min(path_length, best_path_length)
 
         return (best_value_minimax, best_path_length)
@@ -271,7 +271,7 @@ class STRAT:
         values = []
         path_lengths = []
         for child in root.children:
-            value, path_length = self.pimp_my_minimax_aux(child, self.other_player, alpha, beta, depth=6)
+            value, path_length = self.pimp_my_minimax_aux(child, self.other_player, alpha, beta, depth=4)
             print(f"val : {value} ; move : {child.move} ; path_length : {path_length}")
             values.append(value)
             path_lengths.append(path_length)
@@ -289,11 +289,13 @@ class STRAT:
             best_value = max(values) if self.starting_player is self.ui.BLACK_PLAYER else min(values)
 
             # get indexes which correspond to the minimax result
-            minimax_indexes = np.array(index_finder(values, best_value))
+            
+            minimax_indexes = (index_finder(values, best_value))
 
-            path_indexes = np.array(index_finder(path_lengths, best_path_length))
+            path_indexes = (index_finder(path_lengths, best_path_length))
+            
+            inter = [elem for elem in minimax_indexes if elem in path_indexes]
 
-            inter = np.intersect1d(minimax_indexes, path_indexes)
             if len(inter) > 0:
                 best_move = root.children[choice(inter)].move
 

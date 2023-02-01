@@ -1,7 +1,7 @@
 import copy
 from math import log, sqrt, inf, floor
 from random import choice
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 from rich.console import Console
@@ -76,7 +76,8 @@ class STRAT:
             # implement here White player strategy
             # x, y = self.minimax_strategy(root_node)
             # x, y = self.minimaxAB_strategy(root_node)
-            x, y = self.minimaxAB_pathMinimizer(root_node)
+            x, y = self.minimaxAB_bestChoice(root_node)
+            print(f"({x}, {y})\n")
 
         return (x, y)
 
@@ -96,7 +97,6 @@ class STRAT:
         if path is not None:
             self.logic.GAME_OVER = False
             if path["player"] is player:
-                #print(f"path -> {path}")
                 if argc == 1:
                     return 1 if player is self.ui.BLACK_PLAYER else -1
                 return (1, len(path["nodes"])) if player is self.ui.BLACK_PLAYER else (-1, len(path["nodes"]))
@@ -106,10 +106,59 @@ class STRAT:
         if path is not None:
             self.logic.GAME_OVER = False
             if path["player"] is other_player:
-                #print(f"path -> {path}")
                 if argc == 1:
                     return -1 if player is self.ui.BLACK_PLAYER else 1
                 return (-1, len(path["nodes"])) if player is self.ui.BLACK_PLAYER else (1, len(path["nodes"]))
+
+
+    def make_best_move(self, current_node: Node, minimax_values, path_lengths, depths):
+        best_path_length = min(path_lengths)
+        best_depth = max(depths)
+
+        """Summary of variables used below
+
+        path_indexes    : Get indexes in path_lengths which correspond to best_path_length
+        depth_indexes   : Get indexes in depths which correspond to best_depth
+        minimax_indexes : Get indexes in minimax_values which correspond to the best_value, i.e min or max
+
+        inter_depth_path    : Determine the intersection between path's and depth's indexes
+        inter_minimax_path  : Determine the intersection between minimax's and path's indexes
+        inter_minimax_depth : Determine the intersection between minimax's and depth's indexes
+        inter_of_inters     : Determine the intersection between inter_minimax_path and inter_minimax_depth
+        """
+
+        if all_equal(minimax_values):
+            path_indexes = index_finder(path_lengths, best_path_length)
+            if all_equal(depths):
+                # Pick a move which minimize the path length
+                return current_node.children[choice(path_indexes)].move
+            else:
+                depth_indexes = index_finder(depths, best_depth)
+                inter_depth_path = [elem for elem in depth_indexes if elem in path_indexes]
+                print(f"depth_indexes : {depth_indexes} ; path_indexes : {path_indexes} ; inter : {inter_depth_path}")
+                # If the intersection isn't empty then return one of these indexes
+                # else return one of the path_indexes
+                return current_node.children[choice(inter_depth_path)].move if len(inter_depth_path) > 0 else current_node.children[choice(path_indexes)].move
+
+        else:
+            best_value = max(minimax_values) if self.starting_player is self.ui.BLACK_PLAYER else min(minimax_values)
+
+            minimax_indexes = index_finder(minimax_values, best_value)
+            path_indexes = index_finder(path_lengths, best_path_length) 
+            depth_indexes = index_finder(depths, best_depth)
+
+            inter_minimax_path = [elem for elem in minimax_indexes if elem in path_indexes]
+            inter_minimax_depth = [elem for elem in minimax_indexes if elem in depth_indexes]
+            print(f"depth_indexes : {depth_indexes} ; path_indexes : {path_indexes} ; inter : {inter_minimax_path} ; inter2 : {inter_minimax_depth}")
+            inter_of_inters = [elem for elem in inter_minimax_path if elem in inter_minimax_depth]
+
+            if len(inter_of_inters) > 0:
+                return current_node.children[choice(inter_of_inters)].move
+            elif len(inter_minimax_depth) > 0:
+                return current_node.children[choice(inter_minimax_depth)].move
+            elif len(inter_minimax_path) > 0:
+                return current_node.children[choice(inter_minimax_path)].move
+            return current_node.children[choice(minimax_indexes)].move
 
     ##################################################
     #                   HEURISTICS                   #
@@ -144,15 +193,15 @@ class STRAT:
     def minimax_strategy(self, root: Node) -> tuple:
         root.create_children(self.logic, self.starting_player)
 
-        values = []
+        minimax_values = []
         for child in root.children:
-            values.append(self.minimax_aux(child, self.other_player))
+            minimax_values.append(self.minimax_aux(child, self.other_player))
 
-        if all_equal(values):
+        if all_equal(minimax_values):
             best_move = choice(root.children).move
         else:
-            best_value = max(values) if self.starting_player is self.ui.BLACK_PLAYER else min(values)
-            best_move = root.children[choice(index_finder(values, best_value))].move
+            best_value = max(minimax_values) if self.starting_player is self.ui.BLACK_PLAYER else min(minimax_values)
+            best_move = root.children[choice(index_finder(minimax_values, best_value))].move
         
         return best_move
 
@@ -193,17 +242,17 @@ class STRAT:
     def minimaxAB_strategy(self, root: Node, alpha: int = -2, beta: int = 2, depth: int = 4) -> tuple:
         root.create_children(self.logic, self.starting_player)
 
-        values = []
+        minimax_values = []
         for child in root.children:
             value = self.minimaxAB_aux(child, self.other_player, alpha, beta, depth)
-            values.append(value)
+            minimax_values.append(value)
 
-        if all_equal(values):
+        if all_equal(minimax_values):
             best_move = choice(root.children).move
 
         else:
-            best_value = max(values) if self.starting_player is self.ui.BLACK_PLAYER else min(values)
-            best_move = root.children[choice(index_finder(values, best_value))].move
+            best_value = max(minimax_values) if self.starting_player is self.ui.BLACK_PLAYER else min(minimax_values)
+            best_move = root.children[choice(index_finder(minimax_values, best_value))].move
 
         return best_move
 
@@ -211,22 +260,23 @@ class STRAT:
     #           PIMP MY MINIMAX ALPHA BETA           #
     ##################################################
 
-    def minimaxAB_pathMinimizer_aux(self, current_node: Node, player: int, alpha: int, beta: int, depth: int) -> tuple:
+    def minimaxAB_bestChoice_aux(self, current_node: Node, player: int, alpha: int, beta: int, depth: int) -> tuple:
         score = self.get_score(current_node.state, player, argc=2)
         if score is not None:
-            return score
+            score_minimax, path_length = score
+            return (score_minimax, path_length, depth)
 
         if depth == 0:
             if player is self.starting_player:
-                return (1, inf) if player is self.ui.BLACK_PLAYER else (-1, inf)
-            return (-1, inf) if player is self.ui.BLACK_PLAYER else (1, inf)
+                return (1, inf, depth) if player is self.ui.BLACK_PLAYER else (-1, inf, depth)
+            return (-1, inf, depth) if player is self.ui.BLACK_PLAYER else (1, inf, depth)
 
         current_node.create_children(self.logic, player)
 
         if player is self.ui.BLACK_PLAYER:
             best_value_minimax, best_path_length = -inf, inf
             for child in current_node.children:
-                value_minimax, path_length = self.minimaxAB_pathMinimizer_aux(child, self.ui.WHITE_PLAYER, alpha, beta, depth - 1)
+                value_minimax, path_length, depth_acc = self.minimaxAB_bestChoice_aux(child, self.ui.WHITE_PLAYER, alpha, beta, depth - 1)
                 # The mimimum path is the path which cross straight the board
                 # Therefore, the minimum size of the path is the board_size
                 if path_length >= self.ui.board_size:
@@ -239,7 +289,7 @@ class STRAT:
         else:
             best_value_minimax, best_path_length = inf, inf
             for child in current_node.children:
-                value_minimax, path_length = self.minimaxAB_pathMinimizer_aux(child, self.ui.BLACK_PLAYER, alpha, beta, depth - 1)
+                value_minimax, path_length, depth_acc = self.minimaxAB_bestChoice_aux(child, self.ui.BLACK_PLAYER, alpha, beta, depth - 1)
                 if path_length >= self.ui.board_size:
                     best_path_length = min(path_length, best_path_length)
                 
@@ -248,38 +298,18 @@ class STRAT:
                 if beta <= alpha:
                     break
 
-        return (best_value_minimax, best_path_length)
+        return (best_value_minimax, best_path_length, depth_acc)
 
 
-    def minimaxAB_pathMinimizer(self, root: Node, alpha: int = -2, beta: int = 2, depth: int = 4) -> tuple:
+    def minimaxAB_bestChoice(self, root: Node, alpha: int = -2, beta: int = 2, depth: int = 4) -> tuple:
         root.create_children(self.logic, self.starting_player)
 
-        values, path_lengths = [], []
+        minimax_values, path_lengths, depths = [], [], []
         for child in root.children:
-            value, path_length = self.minimaxAB_pathMinimizer_aux(child, self.other_player, alpha, beta, depth)
-            print(f"val : {value} ; move : {child.move} ; path_length : {path_length}")
-            values.append(value)
+            value, path_length, depth_acc = self.minimaxAB_bestChoice_aux(child, self.other_player, alpha, beta, depth=depth)
+            print(f"val : {value} ; move : {child.move} ; path_length : {path_length} ; depth : {depth_acc}")
+            minimax_values.append(value)
             path_lengths.append(path_length)
+            depths.append(depth_acc)
 
-        best_path_length = min(path_lengths)
-
-        # Check if all values of minimax are equals 
-        if all_equal(values):
-            # We pick a move which minimize the path length
-            best_move = root.children[choice(index_finder(path_lengths, best_path_length))].move
-        else:
-            best_value = max(values) if self.starting_player is self.ui.BLACK_PLAYER else min(values)
-            # Get indexes which correspond to the minimax result
-            minimax_indexes = index_finder(values, best_value)
-            # Get indexes which correspond to the path indexes result
-            path_indexes = index_finder(path_lengths, best_path_length)
-            # Determine the intersection between both list
-            inter = [elem for elem in minimax_indexes if elem in path_indexes]
-
-            if len(inter) > 0:
-                best_move = root.children[choice(inter)].move
-            else:
-                best_move = root.children[choice(minimax_indexes)].move
-
-        print(best_move, "\n")
-        return best_move
+        return self.make_best_move(root, minimax_values, path_lengths, depths)

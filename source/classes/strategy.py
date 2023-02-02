@@ -10,6 +10,10 @@ from rich.table import Table
 
 from classes.utils import index_finder, all_equal
 
+import time
+
+play_move_time = {1: [], 2: []}
+
 class Node(object):
     def __init__(self, logic, board, move=(None, None), wins=0, visits=0, children=None):
         # Save the #wins:#visited ratio
@@ -68,6 +72,8 @@ class STRAT:
     def start(self) -> tuple:
         root_node = Node(self.logic, self.root_state)
 
+        start_time = time.time()
+
         if self.starting_player is self.ui.BLACK_PLAYER:
             # implement here Black player strategy (if needed, i.e., no human playing)
             x, y = self.random_strategy(root_node)
@@ -79,6 +85,8 @@ class STRAT:
             x, y = self.minimaxAB_bestChoice(root_node)
             print(f"({x}, {y})\n")
 
+        time_elapsed = time.time() - start_time
+        play_move_time[self.starting_player].append(time_elapsed)
         return (x, y)
 
     ##################################################

@@ -15,7 +15,7 @@ from classes.game import Game
 
 import pandas as pd
 
-
+from classes.strategy import play_move_time
 
 class Tournament:
     def __init__(self, args:  list):
@@ -88,3 +88,8 @@ class Tournament:
 
         print(f"\nBlack Player won {int(win_count[1])} games || White Player won {int(win_count[2])} games")
         print(f"Win rate Black player: {int((win_count[1]/self.N_GAMES)*100)}% || Win rate White player: {int((win_count[2]/self.N_GAMES)*100)}% \n")
+
+        # Average time for each player to play a move
+
+        print(f"Black player took an average of {sum(play_move_time[1])/len(play_move_time) * 1000} milliseconds to make a move during these games")
+        print(f"White player took an average of {sum(play_move_time[2])/len(play_move_time) * 1000} milliseconds to make a move during these games\n")

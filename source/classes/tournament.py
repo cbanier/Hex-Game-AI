@@ -47,7 +47,18 @@ class Tournament:
         
         while game.winner is None:
             game.play()
-          
+
+        print(f"\nStatistiques :\n\nNombre de tours joués : {game.nb_turns}")
+        print(f"Nombre de coups joués par les noirs : {game.nb_turns}") # black's player plays first so his number of moves is always equal to the number of turns, no matter what the outcome
+
+        # The number of white moves is equal to the number of turns played if white wins, otherwise it is equal to the number of turns minus 1 as blacks always start
+        if game.winner == 1: # if black wins
+            value = game.nb_turns -1
+        else:
+            value = game.nb_turns
+
+        print(f"Nombre de coups joués par les blancs : {value}") 
+         
         return game.winner
 
     def championship(self):
@@ -75,10 +86,5 @@ class Tournament:
             winner = self.single_game(black_starts = self.GAME_COUNT < self.N_GAMES / 2)
             win_count[winner] += 1
 
-        print(f"Black Player won {int(win_count[1])} games || White Player won {int(win_count[2])} games")
+        print(f"\nBlack Player won {int(win_count[1])} games || White Player won {int(win_count[2])} games")
         print(f"Win rate Black player: {int((win_count[1]/self.N_GAMES)*100)}% || Win rate White player: {int((win_count[2]/self.N_GAMES)*100)}% \n")
-        
-        print(f"Average moves for Black player: {(Game.black_count/self.N_GAMES)} || Average moves for Black player: {(Game.white_count/self.N_GAMES)}")
-        print(f"Nombre de coups total pour les noirs : {(Game.black_count)} || Nombre de coups total pour les blancs : {(Game.white_count)}")
-
-        # Ajouter temps de jeu pour chaque joueur

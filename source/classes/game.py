@@ -11,8 +11,6 @@ from classes.ui import UI
 class Game:
 
     # Counters to count the number of moves played by each player
-    black_count = 0
-    white_count = 0
 
     def __init__(self, board_size: int, mode: str, black_starts: bool = True):
         """
@@ -31,7 +29,7 @@ class Game:
         """
 
         #Initialisation tour
-        self.turn_count = 0
+        # self.turn_count = 0
 
         # Select mode
         self.modes = { "ai_vs_ai":  0,
@@ -48,6 +46,7 @@ class Game:
         # Initialize public variables
         self.node = None
         self.winner = None
+        self.nb_turns = 0
 
         # Initialize dict-based "function"
         self.turn = { True:  self.ui.BLACK_PLAYER, 
@@ -70,6 +69,8 @@ class Game:
         table.add_row("Game", str(args[2]))
 
         console.print(table)
+        
+        return self.nb_turns
 
     def handle_events(self) -> None:
         """
@@ -98,6 +99,7 @@ class Game:
         if   self.modes["ai_vs_ai"]:    node = None
         elif self.modes["man_vs_ai"]:   node = self.node
         else: assert False, "SHOULD NOT HAPPEN UNLESS YOU IMPLEMENT THE man_vs_man VERSION"
+        self.nb_turns += 1
 
         # BLACK player's turn       
         if not self.check_move(node, self.turn[self.turn_state]):
@@ -107,10 +109,10 @@ class Game:
             pass
 
         # Increment the number of moves of each player when it is his turn to play
-        if self.turn_state == True: # -> if it is Black player's turn to play
+        '''if self.turn_state == True: # -> if it is Black player's turn to play
             Game.black_count += 1
         else:
-            Game.white_count += 1
+            Game.white_count += 1'''
 
     def check_move(self, node, player) -> bool:
         """

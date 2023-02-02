@@ -38,13 +38,16 @@ class Tournament:
 
         @return   The number of the winner, either 1 or 2, for black and white respectively.
         """
+
         pygame.init()
         pygame.display.set_caption("Polyline")
 
         game = Game(board_size = self.BOARD_SIZE, mode = self.MODE, black_starts = black_starts)
         game.get_game_info([ self.BOARD_SIZE, self.MODE, self.GAME_COUNT ])
+        
         while game.winner is None:
             game.play()
+          
         return game.winner
 
     def championship(self):
@@ -62,3 +65,20 @@ class Tournament:
         log = logging.getLogger("rich")
 
         print("Design your own evaluation measure!")
+
+        win_count = {1: 0, 2:0}
+        for _ in range(self.N_GAMES):
+            self.GAME_COUNT = _
+
+            # First half of the tournament started by one player.
+            # Remaining half started by other player (see "no pie rule")
+            winner = self.single_game(black_starts = self.GAME_COUNT < self.N_GAMES / 2)
+            win_count[winner] += 1
+
+        print(f"Black Player won {int(win_count[1])} games || White Player won {int(win_count[2])} games")
+        print(f"Win rate Black player: {int((win_count[1]/self.N_GAMES)*100)}% || Win rate White player: {int((win_count[2]/self.N_GAMES)*100)}% \n")
+        
+        print(f"Average moves for Black player: {(Game.black_count/self.N_GAMES)} || Average moves for Black player: {(Game.white_count/self.N_GAMES)}")
+        print(f"Nombre de coups total pour les noirs : {(Game.black_count)} || Nombre de coups total pour les blancs : {(Game.white_count)}")
+
+        # Ajouter temps de jeu pour chaque joueur

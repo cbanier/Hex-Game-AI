@@ -9,6 +9,11 @@ from classes.ui import UI
 
 
 class Game:
+
+    # Counters to count the number of moves played by each player
+    black_count = 0
+    white_count = 0
+
     def __init__(self, board_size: int, mode: str, black_starts: bool = True):
         """
         Initialisation of a new game with:
@@ -24,6 +29,10 @@ class Game:
 
         Finally, a dictionary-based "method/function" allows to retrieve the player based on the parity (even/odd) of the current step in the game.
         """
+
+        #Initialisation tour
+        self.turn_count = 0
+
         # Select mode
         self.modes = { "ai_vs_ai":  0,
                        "man_vs_ai": 0 }
@@ -42,7 +51,7 @@ class Game:
 
         # Initialize dict-based "function"
         self.turn = { True:  self.ui.BLACK_PLAYER, 
-                      False: self.ui.WHITE_PLAYER }
+                      False: self.ui.WHITE_PLAYER}
 
     def get_game_info(self, args) -> None:
         """
@@ -90,12 +99,18 @@ class Game:
         elif self.modes["man_vs_ai"]:   node = self.node
         else: assert False, "SHOULD NOT HAPPEN UNLESS YOU IMPLEMENT THE man_vs_man VERSION"
 
-        # BLACK player's turn
+        # BLACK player's turn       
         if not self.check_move(node, self.turn[self.turn_state]):
             pass
         # WHITE player's turn (AI)
         elif not self.check_move(None, self.turn[self.turn_state]):
             pass
+
+        # Increment the number of moves of each player when it is his turn to play
+        if self.turn_state == True: # -> if it is Black player's turn to play
+            Game.black_count += 1
+        else:
+            Game.white_count += 1
 
     def check_move(self, node, player) -> bool:
         """

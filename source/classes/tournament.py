@@ -50,8 +50,8 @@ class Tournament:
         while game.winner is None:
             game.play()
 
-        print(f"\nStatistiques :\n\nNombre de tours joués : {game.nb_turns}")
-        print(f"Nombre de coups joués par les noirs : {game.nb_turns}") # black's player plays first so his number of moves is always equal to the number of turns, no matter what the outcome
+        print(f"\nStatistiques :\n\nNumber of turns played : {game.nb_turns}")
+        print(f"Number of moves played by black : {game.nb_turns}") # black's player plays first so his number of moves is always equal to the number of turns, no matter what the outcome
 
         # The number of white moves is equal to the number of turns played if white wins, otherwise it is equal to the number of turns minus 1 as blacks always start
         if game.winner == 1: # if black wins
@@ -59,7 +59,7 @@ class Tournament:
         else:
             value = game.nb_turns
 
-        print(f"Nombre de coups joués par les blancs : {value}") 
+        print(f"Number of moves played by white : {value}") 
          
         return game.winner
 
@@ -77,15 +77,13 @@ class Tournament:
 
         log = logging.getLogger("rich")
 
-        print("Design your own evaluation measure!")
-
+        # creation of a dictionary to count the victories of each player
         win_count = {1 : 0, 2 : 0}
         for _ in range(self.N_GAMES):
             self.GAME_COUNT = _
 
-            # First half of the tournament started by one player.
-            # Remaining half started by other player (see "no pie rule")
             winner = self.single_game(black_starts = self.GAME_COUNT < self.N_GAMES / 2)
+            # The winner of each game is recorded by incrementing the corresponding value in the "win_count" dictionary.
             win_count[winner] += 1
 
         print(f"\nBlack Player won {int(win_count[1])} games || White Player won {int(win_count[2])} games")

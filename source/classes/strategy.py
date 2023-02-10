@@ -83,9 +83,7 @@ class Node(object):
                     and neighbour not in moves_of_player):
                     moves_to_explore.append(neighbour)
 
-        # ajout d'un chemin jusqu'à la gagne
-        # si le joueur est blanc, alors le chemin va se déplacer sur l'axe des y
-        # contraire si noir
+        # adding a path allowing the player to win by moving respectively along the y-axis for the white player or the x-axis for the black player
         others_moves_to_explore = []
         if player == 1: # BLACK_PLAYER
             for x, y in moves_to_explore:

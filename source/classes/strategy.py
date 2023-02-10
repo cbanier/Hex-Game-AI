@@ -12,7 +12,7 @@ from classes.utils import index_finder, all_equal
 
 import time
 
-play_move_time = {1: [], 2: []}
+play_move_time = {1 : [], 2 : []}
 
 class Node(object):
     def __init__(self, logic, board, move=(None, None), wins=0, visits=0, children=None):
@@ -25,36 +25,100 @@ class Node(object):
         self.parent = None
         self.untried_moves = logic.get_possible_moves(board)
 
+    ##################################################
+    #             TREE SEARCH FUNCTIONS              #
+    ##################################################
+
     def __str__(self, level=0):
-        ret = "\t"*level+repr(self.move)+"\n"
+        ret = "\t" * level + repr(self.move) + "\n"
         for child in self.children:
-            ret += child.__str__(level+1)
+            ret += child.__str__(level + 1)
         return ret
     
+
     def __repr__(self):
-        return '<tree node representation>'
+        return '<Tree node representation>'
+
 
     def add_child(self, child):
         child.parent = self
         self.children.append(child)
 
-    def create_children(self, logic, player: int):
-        for x, y in self.untried_moves:
-            new_state = np.copy(self.state)
-            new_state[x][y] = player
-            new_node = Node(logic, board=new_state, move=(x, y))
-            self.add_child(new_node)
-        
-    # Distance between two Node
-    def manhattan_distance(self, node):
-        x1, y1 = self.move
-        x2, y2 = node
-        return abs(x1 - x2) + abs(y1 - y2)
 
-    def euclidean_distance(self, node):
-        x1, y1 = self.move
-        x2, y2 = node
-        return sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+    def create_children(self, logic, player: int, moves_heuritic: bool = False):
+        if moves_heuritic:
+            for x, y in self.get_moves_to_explore(logic, player):
+                new_state = np.copy(self.state)
+                new_state[x][y] = player
+                new_node = Node(logic, board=new_state, move=(x, y))
+                self.add_child(new_node)
+        else:
+            for x, y in self.untried_moves:
+                new_state = np.copy(self.state)
+                new_state[x][y] = player
+                new_node = Node(logic, board=new_state, move=(x, y))
+                self.add_child(new_node)
+        
+    ##################################################
+    #        HEURISTICS ABOUT MOVE EXPLORATION       #
+    ##################################################
+
+    def get_moves_to_explore(self, logic, player: int):
+        board = np.copy(self.state)
+        
+        moves_of_player, moves_of_other_player = [], []
+        for x in range(len(board)):
+            for y in range(len(board)):
+                if board[x][y] == player:
+                    moves_of_player.append((x, y))
+
+                elif board[x][y] not in [player, 0]:
+                    moves_of_other_player.append((x, y))
+
+        moves_to_explore = []
+        # Get free moves which are neighbors to the adversary player
+        for move in moves_of_other_player:
+            for neighbour in logic.get_neighbours(move):
+                if (neighbour not in moves_to_explore and neighbour not in moves_of_other_player
+                    and neighbour not in moves_of_player):
+                    moves_to_explore.append(neighbour)
+
+        # ajout d'un chemin jusqu'à la gagne
+        # si le joueur est blanc, alors le chemin va se déplacer sur l'axe des y
+        # contraire si noir
+        others_moves_to_explore = []
+        if player == 1: # BLACK_PLAYER
+            for x, y in moves_to_explore:
+                for delta_x in range(len(board)):
+                    if logic.is_node_free((delta_x, y), board) == True and (delta_x, y) not in others_moves_to_explore:
+                        others_moves_to_explore.append((delta_x, y))
+                        board[delta_x][y] = player
+
+            for x, y in moves_of_player:
+                for delta_y in range(len(board)):
+                    if logic.is_node_free((x, delta_y), board) == True and (x, delta_y) not in others_moves_to_explore:
+                        others_moves_to_explore.append((x, delta_y))
+                        board[x][delta_y] = player
+
+        else:
+            for x, y in moves_to_explore:
+                for delta_y in range(len(self.state)):
+                    if logic.is_node_free((x, delta_y), board) == True and (x, delta_y) not in others_moves_to_explore:
+                        others_moves_to_explore.append((x, delta_y))
+                        board[x][delta_y] = player
+
+            for x, y in moves_of_player:
+                for delta_x in range(len(self.state)):
+                    if logic.is_node_free((delta_x, y), board) == True and (delta_x, y) not in others_moves_to_explore:
+                        others_moves_to_explore.append((delta_x, y))
+                        board[delta_x][y] = player
+
+        for move in others_moves_to_explore:
+            if move not in moves_to_explore:
+                moves_to_explore.append(move)
+
+        return moves_to_explore
+
 
 class STRAT:
     def __init__(self, logic, ui, board_state, starting_player):
@@ -87,6 +151,7 @@ class STRAT:
 
         time_elapsed = time.time() - start_time
         play_move_time[self.starting_player].append(time_elapsed)
+        
         return (x, y)
 
     ##################################################
@@ -100,7 +165,26 @@ class STRAT:
     #              AUXILIARY FUNCTIONS               #
     ##################################################
 
-    def get_score(self, board: np.array, player: int, argc: int):
+    def first_move_choose(self, player: int):
+        board_size = len(self.root_state)
+    
+        top_part, bottom_part = [], []
+        left_part, right_part = [], []
+        for x in range(board_size):
+            for y in range(x, board_size - x):
+                top_part.append((x, y))
+                left_part.append((y, x))
+
+            for y in range(board_size - 1 - x, x + 1):
+                bottom_part.append((x, y))
+                right_part.append((y, x))
+
+        if player is self.ui.BLACK_PLAYER:
+            return choice(left_part + [elem for elem in right_part if elem not in left_part])
+        return choice(top_part + [elem for elem in bottom_part if elem not in top_part])
+
+
+    def get_score(self, board: np.array, player: int, argc: int) -> tuple:
         path = self.logic.is_game_over(player, board)
         if path is not None:
             self.logic.GAME_OVER = False
@@ -118,8 +202,10 @@ class STRAT:
                     return -1 if player is self.ui.BLACK_PLAYER else 1
                 return (-1, len(path["nodes"])) if player is self.ui.BLACK_PLAYER else (1, len(path["nodes"]))
 
+        return None
 
-    def make_best_move(self, current_node: Node, minimax_values, path_lengths, depths):
+
+    def choose_best_move(self, current_node: Node, minimax_values, path_lengths, depths) -> tuple:
         best_path_length = min(path_lengths)
         best_depth = max(depths)
 
@@ -143,7 +229,8 @@ class STRAT:
             else:
                 depth_indexes = index_finder(depths, best_depth)
                 inter_depth_path = [elem for elem in depth_indexes if elem in path_indexes]
-                print(f"depth_indexes : {depth_indexes} ; path_indexes : {path_indexes} ; inter : {inter_depth_path}")
+                # print(f"depth_indexes : {depth_indexes} ; path_indexes : {path_indexes} ; inter : {inter_depth_path}")
+
                 # If the intersection isn't empty then return one of these indexes
                 # else return one of the path_indexes
                 return current_node.children[choice(inter_depth_path)].move if len(inter_depth_path) > 0 else current_node.children[choice(path_indexes)].move
@@ -157,7 +244,7 @@ class STRAT:
 
             inter_minimax_path = [elem for elem in minimax_indexes if elem in path_indexes]
             inter_minimax_depth = [elem for elem in minimax_indexes if elem in depth_indexes]
-            print(f"depth_indexes : {depth_indexes} ; path_indexes : {path_indexes} ; inter : {inter_minimax_path} ; inter2 : {inter_minimax_depth}")
+            # print(f"depth_indexes : {depth_indexes} ; path_indexes : {path_indexes} ; inter : {inter_minimax_path} ; inter2 : {inter_minimax_depth}")
             inter_of_inters = [elem for elem in inter_minimax_path if elem in inter_minimax_depth]
 
             if len(inter_of_inters) > 0:
@@ -167,10 +254,6 @@ class STRAT:
             elif len(inter_minimax_path) > 0:
                 return current_node.children[choice(inter_minimax_path)].move
             return current_node.children[choice(minimax_indexes)].move
-
-    ##################################################
-    #                   HEURISTICS                   #
-    ##################################################
 
     ##################################################
     #                    MINIMAX                     #
@@ -265,7 +348,7 @@ class STRAT:
         return best_move
 
     ##################################################
-    #           PIMP MY MINIMAX ALPHA BETA           #
+    #          MINIMAX ALPHA BETA OPTIMIZED          #
     ##################################################
 
     def minimaxAB_bestChoice_aux(self, current_node: Node, player: int, alpha: int, beta: int, depth: int) -> tuple:
@@ -276,48 +359,58 @@ class STRAT:
 
         if depth == 0:
             if player is self.starting_player:
-                return (1, inf, depth) if player is self.ui.BLACK_PLAYER else (-1, inf, depth)
-            return (-1, inf, depth) if player is self.ui.BLACK_PLAYER else (1, inf, depth)
+                return (1, inf, -inf) if player is self.ui.BLACK_PLAYER else (-1, inf, -inf)
+            return (-1, inf, -inf) if player is self.ui.BLACK_PLAYER else (1, inf, -inf)
 
-        current_node.create_children(self.logic, player)
+        current_node.create_children(self.logic, player, moves_heuritic=True)
 
+        best_path_length, best_depth = inf, -inf
         if player is self.ui.BLACK_PLAYER:
-            best_value_minimax, best_path_length = -inf, inf
+            best_value_minimax  = -inf
             for child in current_node.children:
                 value_minimax, path_length, depth_acc = self.minimaxAB_bestChoice_aux(child, self.ui.WHITE_PLAYER, alpha, beta, depth - 1)
                 # The mimimum path is the path which cross straight the board
                 # Therefore, the minimum size of the path is the board_size
-                if path_length >= self.ui.board_size:
+                if path_length >= len(self.root_state):
                     best_path_length = min(path_length, best_path_length)
                 
+                best_depth = max(depth_acc, best_depth)
+
                 best_value_minimax = max(value_minimax, best_value_minimax)
                 alpha = max(alpha, best_value_minimax)
                 if beta <= alpha:
                     break
         else:
-            best_value_minimax, best_path_length = inf, inf
+            best_value_minimax = inf
             for child in current_node.children:
                 value_minimax, path_length, depth_acc = self.minimaxAB_bestChoice_aux(child, self.ui.BLACK_PLAYER, alpha, beta, depth - 1)
-                if path_length >= self.ui.board_size:
+                if path_length >= len(self.root_state):
                     best_path_length = min(path_length, best_path_length)
                 
+                best_depth = max(depth_acc, best_depth)
+
                 best_value_minimax = min(value_minimax, best_value_minimax)
                 beta = min(beta, best_value_minimax)
                 if beta <= alpha:
                     break
 
-        return (best_value_minimax, best_path_length, depth_acc)
+        return (best_value_minimax, best_path_length, best_depth)
 
 
     def minimaxAB_bestChoice(self, root: Node, alpha: int = -2, beta: int = 2, depth: int = 4) -> tuple:
-        root.create_children(self.logic, self.starting_player)
+        # Test if the board game is empty
+        # i.e if the number of possible moves is equal to the dimension of the game
+        if len(root.untried_moves) == len(self.root_state) ** 2:
+            return self.first_move_choose(self.starting_player)
+
+        root.create_children(self.logic, self.starting_player, moves_heuritic=True)
 
         minimax_values, path_lengths, depths = [], [], []
         for child in root.children:
             value, path_length, depth_acc = self.minimaxAB_bestChoice_aux(child, self.other_player, alpha, beta, depth=depth)
-            print(f"val : {value} ; move : {child.move} ; path_length : {path_length} ; depth : {depth_acc}")
+            #print(f"val : {value} ; move : {child.move} ; path_length : {path_length} ; depth : {depth_acc}")
             minimax_values.append(value)
             path_lengths.append(path_length)
             depths.append(depth_acc)
 
-        return self.make_best_move(root, minimax_values, path_lengths, depths)
+        return self.choose_best_move(root, minimax_values, path_lengths, depths)

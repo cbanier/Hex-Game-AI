@@ -17,6 +17,8 @@ import pandas as pd
 
 from classes.strategy import play_move_time
 
+import time
+
 class Tournament:
     def __init__(self, args:  list):
         """
@@ -77,7 +79,7 @@ class Tournament:
 
         print("Design your own evaluation measure!")
 
-        win_count = {1: 0, 2:0}
+        win_count = {1 : 0, 2 : 0}
         for _ in range(self.N_GAMES):
             self.GAME_COUNT = _
 

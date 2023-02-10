@@ -41,6 +41,6 @@ if __name__ == "__main__":
 
     BOARD_SIZE = 5
     GAME_COUNT = 0
-    N_GAMES    = 4
+    N_GAMES    = 100
 
     main([ BOARD_SIZE, MODE, GAME_COUNT, N_GAMES ])

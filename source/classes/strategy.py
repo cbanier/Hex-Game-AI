@@ -135,18 +135,20 @@ class STRAT:
         root_node = Node(self.logic, self.root_state)
 
         start_time = time.time()
-
         if self.starting_player is self.ui.BLACK_PLAYER:
             # implement here Black player strategy (if needed, i.e., no human playing)
             x, y = self.random_strategy(root_node)
+            # x, y = self.minimax_strategy(root_node)
+            # x, y = self.minimaxAB_strategy(root_node)
 
         elif self.starting_player is self.ui.WHITE_PLAYER:
             # implement here White player strategy
             # x, y = self.minimax_strategy(root_node)
             # x, y = self.minimaxAB_strategy(root_node)
             x, y = self.minimaxAB_bestChoice(root_node)
-            print(f"({x}, {y})\n")
-
+        
+        #print(f"move played : ({x}, {y})\n")
+        
         time_elapsed = time.time() - start_time
         play_move_time[self.starting_player].append(time_elapsed)
         
@@ -178,8 +180,8 @@ class STRAT:
                 right_part.append((y, x))
 
         if player is self.ui.BLACK_PLAYER:
-            return choice(left_part + [elem for elem in right_part if elem not in left_part])
-        return choice(top_part + [elem for elem in bottom_part if elem not in top_part])
+            return choice(list(set(left_part) & set(right_part)))
+        return choice(list(set(top_part) & set(bottom_part)))
 
 
     def get_score(self, board: np.array, player: int, argc: int) -> tuple:
@@ -226,7 +228,7 @@ class STRAT:
                 return current_node.children[choice(path_indexes)].move
             else:
                 depth_indexes = index_finder(depths, best_depth)
-                inter_depth_path = [elem for elem in depth_indexes if elem in path_indexes]
+                inter_depth_path = list(set(depth_indexes) & set(path_indexes))
                 # print(f"depth_indexes : {depth_indexes} ; path_indexes : {path_indexes} ; inter : {inter_depth_path}")
 
                 # If the intersection isn't empty then return one of these indexes
@@ -240,10 +242,10 @@ class STRAT:
             path_indexes = index_finder(path_lengths, best_path_length) 
             depth_indexes = index_finder(depths, best_depth)
 
-            inter_minimax_path = [elem for elem in minimax_indexes if elem in path_indexes]
-            inter_minimax_depth = [elem for elem in minimax_indexes if elem in depth_indexes]
+            inter_minimax_path = list(set(minimax_indexes) & set(path_indexes))        
+            inter_minimax_depth = list(set(minimax_indexes) & set(depth_indexes))
             # print(f"depth_indexes : {depth_indexes} ; path_indexes : {path_indexes} ; inter : {inter_minimax_path} ; inter2 : {inter_minimax_depth}")
-            inter_of_inters = [elem for elem in inter_minimax_path if elem in inter_minimax_depth]
+            inter_of_inters = list(set(inter_minimax_path) & set(inter_minimax_depth))
 
             if len(inter_of_inters) > 0:
                 return current_node.children[choice(inter_of_inters)].move
@@ -334,8 +336,9 @@ class STRAT:
         minimax_values = []
         for child in root.children:
             value = self.minimaxAB_aux(child, self.other_player, alpha, beta, depth)
+            #print(f"val : {value} ; move : {child.move}")
             minimax_values.append(value)
-
+        
         if all_equal(minimax_values):
             best_move = choice(root.children).move
 
@@ -410,5 +413,5 @@ class STRAT:
             minimax_values.append(value)
             path_lengths.append(path_length)
             depths.append(depth_acc)
-
+        
         return self.choose_best_move(root, minimax_values, path_lengths, depths)

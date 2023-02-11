@@ -11,3 +11,9 @@ def all_equal(_list: List) -> bool:
     except StopIteration:
         return True
     return all(first == x for x in _list)
+
+
+def milliseconds_to_minutes_seconds(milliseconds: float) -> tuple:
+    minutes = (milliseconds // (1000 * 60)) % 60
+    seconds = (milliseconds // 1000) % 60
+    return (minutes, seconds)

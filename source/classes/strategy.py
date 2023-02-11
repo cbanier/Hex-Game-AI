@@ -83,7 +83,8 @@ class Node(object):
                     and neighbour not in moves_of_player):
                     moves_to_explore.append(neighbour)
 
-        # adding a path allowing the player to win by moving respectively along the y-axis for the white player or the x-axis for the black player
+        # Add a path allowing the player to win by moving respectively along the y-axis for the white player 
+        # or the x-axis for the black player
         others_moves_to_explore = []
         if player == 1: # BLACK_PLAYER
             for x, y in moves_to_explore:
@@ -137,9 +138,9 @@ class STRAT:
         start_time = time.time()
         if self.starting_player is self.ui.BLACK_PLAYER:
             # implement here Black player strategy (if needed, i.e., no human playing)
-            x, y = self.random_strategy(root_node)
-            # x, y = self.minimax_strategy(root_node)
-            # x, y = self.minimaxAB_strategy(root_node)
+            #x, y = self.random_strategy(root_node)
+            x, y = self.minimax_strategy(root_node)
+            #x, y = self.minimaxAB_strategy(root_node)
 
         elif self.starting_player is self.ui.WHITE_PLAYER:
             # implement here White player strategy
@@ -168,20 +169,20 @@ class STRAT:
     def first_move_choose(self, player: int):
         board_size = len(self.root_state)
     
-        top_part, bottom_part = [], []
-        left_part, right_part = [], []
+        top_part, bottom_part = set(), set()
+        left_part, right_part = set(), set()
         for x in range(board_size):
             for y in range(x, board_size - x):
-                top_part.append((x, y))
-                left_part.append((y, x))
+                top_part.add((x, y))
+                left_part.add((y, x))
 
             for y in range(board_size - 1 - x, x + 1):
-                bottom_part.append((x, y))
-                right_part.append((y, x))
+                bottom_part.add((x, y))
+                right_part.add((y, x))
 
         if player is self.ui.BLACK_PLAYER:
-            return choice(list(set(left_part) & set(right_part)))
-        return choice(list(set(top_part) & set(bottom_part)))
+            return choice(list(left_part.union(right_part)))
+        return choice(list(top_part.union(bottom_part)))
 
 
     def get_score(self, board: np.array, player: int, argc: int) -> tuple:
@@ -239,10 +240,10 @@ class STRAT:
             best_value = max(minimax_values) if self.starting_player is self.ui.BLACK_PLAYER else min(minimax_values)
 
             minimax_indexes = index_finder(minimax_values, best_value)
-            path_indexes = index_finder(path_lengths, best_path_length) 
+            path_indexes = index_finder(path_lengths, best_path_length)
             depth_indexes = index_finder(depths, best_depth)
 
-            inter_minimax_path = list(set(minimax_indexes) & set(path_indexes))        
+            inter_minimax_path = list(set(minimax_indexes) & set(path_indexes))
             inter_minimax_depth = list(set(minimax_indexes) & set(depth_indexes))
             # print(f"depth_indexes : {depth_indexes} ; path_indexes : {path_indexes} ; inter : {inter_minimax_path} ; inter2 : {inter_minimax_depth}")
             inter_of_inters = list(set(inter_minimax_path) & set(inter_minimax_depth))
@@ -259,34 +260,36 @@ class STRAT:
     #                    MINIMAX                     #
     ##################################################
 
-    def minimax_aux(self, current_node: Node, player: int) -> int:
-        if self.logic.is_game_over(self.ui.WHITE_PLAYER, current_node.state) is self.ui.WHITE_PLAYER:
-            self.logic.GAME_OVER = False
-            return -1
-        elif self.logic.is_game_over(self.ui.BLACK_PLAYER, current_node.state) is self.ui.BLACK_PLAYER:
-            self.logic.GAME_OVER = False
-            return 1
+    def minimax_aux(self, current_node: Node, player: int, depth: int) -> int:
+        score = self.get_score(current_node.state, player, argc=1)
+        if score is not None:
+            return score
+
+        if depth == 0:
+            if player is self.starting_player:
+                return 1 if player is self.ui.BLACK_PLAYER else -1
+            return -1 if player is self.ui.BLACK_PLAYER else 1
 
         current_node.create_children(self.logic, player)
 
         if player is self.ui.BLACK_PLAYER:
             value = -inf
             for child in current_node.children:
-                value = max(value, self.minimax_aux(child, self.ui.WHITE_PLAYER))
+                value = max(value, self.minimax_aux(child, self.ui.WHITE_PLAYER, depth - 1))
         else:
             value = inf
             for child in current_node.children:
-                value = min(value, self.minimax_aux(child, self.ui.BLACK_PLAYER))
+                value = min(value, self.minimax_aux(child, self.ui.BLACK_PLAYER, depth - 1))
 
         return value
 
 
-    def minimax_strategy(self, root: Node) -> tuple:
+    def minimax_strategy(self, root: Node, depth: int = 4) -> tuple:
         root.create_children(self.logic, self.starting_player)
 
         minimax_values = []
         for child in root.children:
-            minimax_values.append(self.minimax_aux(child, self.other_player))
+            minimax_values.append(self.minimax_aux(child, self.other_player, depth))
 
         if all_equal(minimax_values):
             best_move = choice(root.children).move

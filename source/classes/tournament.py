@@ -49,7 +49,7 @@ class Tournament:
         while game.winner is None:
             game.play()
 
-        print(f"\nStatistiques :\n\nNumber of turns played : {game.nb_turns}")
+        print(f"\nStatistics :\n\nNumber of turns played : {game.nb_turns}")
         print(f"Number of moves played by black : {game.nb_turns}") # black's player plays first so his number of moves is always equal to the number of turns, no matter what the outcome
 
         # The number of white moves is equal to the number of turns played if white wins, otherwise it is equal to the number of turns minus 1 as blacks always start

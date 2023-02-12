@@ -134,18 +134,18 @@ class STRAT:
 
     def start(self) -> tuple:
         root_node = Node(self.logic, self.root_state)
-
+    
         start_time = time.time()
         if self.starting_player is self.ui.BLACK_PLAYER:
             # implement here Black player strategy (if needed, i.e., no human playing)
-            #x, y = self.random_strategy(root_node)
-            x, y = self.minimax_strategy(root_node)
+            x, y = self.random_strategy(root_node)
+            #x, y = self.minimax_strategy(root_node)
             #x, y = self.minimaxAB_strategy(root_node)
 
         elif self.starting_player is self.ui.WHITE_PLAYER:
             # implement here White player strategy
             # x, y = self.minimax_strategy(root_node)
-            # x, y = self.minimaxAB_strategy(root_node)
+            #x, y = self.minimaxAB_strategy(root_node)
             x, y = self.minimaxAB_bestChoice(root_node)
         
         #print(f"move played : ({x}, {y})\n")
@@ -163,7 +163,7 @@ class STRAT:
         return choice(node.untried_moves)
 
     ##################################################
-    #              AUXILIARY FUNCTIONS               #
+    #             HEURISTICS FUNCTIONS               #
     ##################################################
 
     def first_move_choose(self, player: int):
@@ -377,7 +377,7 @@ class STRAT:
                 # Therefore, the minimum size of the path is the board_size
                 if path_length >= len(self.root_state):
                     best_path_length = min(path_length, best_path_length)
-                
+
                 best_depth = max(depth_acc, best_depth)
 
                 best_value_minimax = max(value_minimax, best_value_minimax)
@@ -390,7 +390,7 @@ class STRAT:
                 value_minimax, path_length, depth_acc = self.minimaxAB_bestChoice_aux(child, self.ui.BLACK_PLAYER, alpha, beta, depth - 1)
                 if path_length >= len(self.root_state):
                     best_path_length = min(path_length, best_path_length)
-                
+
                 best_depth = max(depth_acc, best_depth)
 
                 best_value_minimax = min(value_minimax, best_value_minimax)

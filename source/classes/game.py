@@ -10,8 +10,6 @@ from classes.ui import UI
 
 class Game:
 
-    # Counters to count the number of moves played by each player
-
     def __init__(self, board_size: int, mode: str, black_starts: bool = True):
         """
         Initialisation of a new game with:
